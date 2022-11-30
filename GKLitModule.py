@@ -1,9 +1,8 @@
 import torch
-from pytorch_lightning import LightningModule, Trainer
-from GeneralKoopman.Nets import ContextDecoder, ContextEncoder, Eigenfunction, Inv_Eigenfunction, Spectrum
-from GeneralKoopman.Loss import future_embedding_loss, future_state_loss, inf_loss, state_recon_loss, context_recon_loss, l2_reg
-from GeneralKoopman.ConfigData import KoopmanDataModule
-from GeneralKoopman.ExtraFunctions import K_blocks
+from pytorch_lightning import LightningModule
+from Nets import ContextDecoder, ContextEncoder, Eigenfunction, Inv_Eigenfunction, Spectrum
+from Loss import future_embedding_loss, future_state_loss, inf_loss, state_recon_loss, context_recon_loss, l2_reg
+from ExtraFunctions import K_blocks
 from torchviz import make_dot
 
 

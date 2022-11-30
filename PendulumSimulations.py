@@ -45,7 +45,7 @@ for i in range(n_training_configs):
         # assign parameters to data
         training_data[exp_starting_index:exp_ending_index, 2:] = repeated_params
 
-        for traj in range(0, n_training_ICs):
+        for traj in range(n_training_ICs):
             # get starting and ending indices for each trajectory
             traj_starting_index = exp_starting_index + traj*traj_len
             traj_ending_index = exp_starting_index + (traj+1)*traj_len
@@ -80,7 +80,7 @@ for i in range(n_testing_configs):
         # assign parameters to data
         testing_data[exp_starting_index:exp_ending_index, 2:] = repeated_params
 
-        for traj in range(0, n_testing_ICs):
+        for traj in range(n_testing_ICs):
             # get starting and ending indices for each trajectory
             traj_starting_index = exp_starting_index + traj*traj_len
             traj_ending_index = exp_starting_index + (traj+1)*traj_len
@@ -104,15 +104,7 @@ for i in range(n_testing_configs):
 np.save("Pendulum_debug_train_data", training_data)
 np.save("Pendulum_debug_train_configs", train_configs)
 
-#np.save("Pendulum_test_data", testing_data)
-#np.save("Pendulum_test_configs", testing_data)
+np.save("Pendulum_test_data", testing_data)
+np.save("Pendulum_test_configs", testing_data)
 
 
-'''
-print(len(z.T))
-plt.plot(t, z.T)
-plt.xlabel('t')
-plt.legend(['theta', 'theta_dot'], shadow=True)
-plt.title('pendulum')
-plt.show()
-'''
