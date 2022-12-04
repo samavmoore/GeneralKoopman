@@ -83,7 +83,8 @@ class ContextDataset(Dataset):
         super().__init__()
         self.data = np.load(data_path)
 
-        self.data = torch.from_numpy(self.data)
+        self.data = torch.from_numpy(self.data).float()
+
 
     def __getitem__(self, index):
         return self.data[index,:]
@@ -114,12 +115,11 @@ class EigenPretrainDataset(Dataset):
     def __init__(self, data_path, n_states):
         super().__init__()
         self.data = np.load(data_path)
+        self.data = torch.from_numpy(self.data).float()
 
         self.states = self.data[:,:n_states]
         self.context = self.data[:,n_states:]
 
-        self.states = torch.from_numpy(self.states)
-        self.context = torch.from_numpy(self.context)
 
     def __getitem__(self, index):
         return self.states[index,:], self.context[index,:]
@@ -138,7 +138,7 @@ class EigenPretrainModule(LightningDataModule):
         if stage == 'fit':
             self.full_data = EigenPretrainDataset(self.data_path)
             self.train, self.val = random_split(self.full_data, [.7, .3])
-            
+
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)
 

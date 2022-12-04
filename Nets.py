@@ -4,7 +4,9 @@ import torch.nn.functional as F
 
 
 class ContextEncoder(nn.Module):
-    def __init__(self, raw_context_shape=2, context_rep_shape=1, hid_layer_1_shape=64):
+    def __init__(self, raw_context_shape: int=2,
+                     context_rep_shape: int=1,
+                     hid_layer_1_shape: int=64):
         super().__init__()
 
         self.context_encoder_l1 = nn.Linear(in_features=raw_context_shape, out_features=hid_layer_1_shape)
@@ -21,12 +23,14 @@ class ContextEncoder(nn.Module):
         return encoded_context
 
 class ContextDecoder(nn.Module):
-    def __init__(self, raw_context_shape=2, context_rep_shape=1, hid_layer_1_shape=64):
+    def __init__(self, raw_context_shape: int=2,
+                     context_rep_shape: int=1,
+                    hid_layer_1_shape: int=64):
         super().__init__()
 
         self.context_decoder_l1 = nn.Linear(in_features=context_rep_shape, out_features=hid_layer_1_shape)
         self.context_decoder_l2 = nn.Linear(in_features=hid_layer_1_shape, out_features=hid_layer_1_shape)
-        self.context_decoder_l3 = nn.Linear(in_feature=hid_layer_1_shape, out_features=raw_context_shape)
+        self.context_decoder_l3 = nn.Linear(in_features=hid_layer_1_shape, out_features=raw_context_shape)
 
     def forward(self, encoded_context):
         ''' Purpose: Reconstruct context from a latent representation
@@ -38,8 +42,11 @@ class ContextDecoder(nn.Module):
         return context_hat
 
 class Eigenfunction(nn.Module):
-    def __init__(self, eigenfunction_input_shape=3, eigenfunction_output_shape=2, eigenfunction_hidden_shape1=48, eigenfunction_hidden_shape2=96):
-        super().__init__()
+    def __init__(self, eigenfunction_input_shape: int=3,
+                     eigenfunction_output_shape: int=2, 
+                     eigenfunction_hidden_shape1: int=48, 
+                     eigenfunction_hidden_shape2: int=96):
+        super().__init__() 
 
         self.eigenfunction_l1 = nn.Linear(in_features=eigenfunction_input_shape, out_features=eigenfunction_hidden_shape1)
         self.eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
@@ -60,9 +67,11 @@ class Eigenfunction(nn.Module):
         return embeddings
 
 class Inv_Eigenfunction(nn.Module):
-    def __init__(self , n_states=2, eigenfunction_output_shape=2, eigenfunction_hidden_shape1=48, eigenfunction_hidden_shape2=96):
+    def __init__(self, n_states: int=2,
+                    eigenfunction_output_shape: int=2,
+                    eigenfunction_hidden_shape1: int=48,
+                    eigenfunction_hidden_shape2: int=96):
         super().__init__()
-
 
         self.inv_eigenfunction_l1 = nn.Linear(in_features=eigenfunction_output_shape, out_features=eigenfunction_hidden_shape1)
         self.inv_eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
@@ -82,25 +91,22 @@ class Inv_Eigenfunction(nn.Module):
         return state_hat
 
 class Spectrum(nn.Module):
-    def __init__(self, network_dict):
+    def __init__(self, spectrum_hidden_shape1: int=48,
+                    spectrum_hidden_shape2: int=64,
+                    spectrum_input_shape: int=2,
+                    spectrum_output_shape: int=2):
         super().__init__()
 
-        self.eigenfunction_output_shape = network_dict['eigenfunction_output_shape']
-        spectrum_input_shape = self.eigenfunction_output_shape # + network_dict['encoded_context_shape']
-        spectrum_hidden_shape = 48
-        spectrum_output_shape = self.eigenfunction_output_shape
+        self.spectrum_l1 = nn.Linear(in_features=spectrum_input_shape, out_features=spectrum_hidden_shape1)
+        self.spectrum_l2 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_hidden_shape2)
+        self.spectrum_l3 = nn.Linear(in_features=spectrum_hidden_shape2, out_features=spectrum_hidden_shape1)
+        self.spectrum_l4 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_output_shape)
 
-        self.spectrum_l1 = nn.Linear(in_features=spectrum_input_shape, out_features=spectrum_hidden_shape)
-        self.spectrum_l2 = nn.Linear(in_features=spectrum_hidden_shape, out_features=spectrum_hidden_shape)
-        self.spectrum_l3 = nn.Linear(in_features=spectrum_hidden_shape, out_features=spectrum_hidden_shape)
-        self.spectrum_l4 = nn.Linear(in_features=spectrum_hidden_shape, out_features=spectrum_output_shape)
-
-    def forward(self, embeddings, encoded_context=None):
+    def forward(self, embeddings):
         ''' Purpose: predict eigenvalues from the output of an eigenfuction
         '''
         #x = torch.cat((encoded_context, embeddings), -1)
-        x = embeddings
-        output1 = F.relu(self.spectrum_l1(x))
+        output1 = F.relu(self.spectrum_l1(embeddings))
         output2 = F.relu(self.spectrum_l2(output1))
         output3 = F.relu(self.spectrum_l3(output2))
         eigs = self.spectrum_l4(output3)
