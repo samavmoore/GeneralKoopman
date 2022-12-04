@@ -52,7 +52,7 @@ class EigenPretrain(LightningModule):
     def __init__(self, hid_layer_shape1: int=48,
                        hid_layer_shape2: int=96,
                        learning_rate: float=0.0047,
-                       Context_NN_Path: str=None):
+                       Context_NN_Path: str='my/path'):
         super().__init__()
         self.save_hyperparameters()
 
@@ -102,8 +102,8 @@ class PendulumKoopModule(LightningModule):
     def __init__(self, n_states: int=2,
                     n_shifts: int =32,
                     delta_t: float=.02,
-                    Context_NN_Path: str=None,
-                    Eigenfunction_NN_Path: str=None,
+                    Context_NN_Path: str='my/path',
+                    Eigenfunction_NN_Path: str='my/path',
                     eigenfunction_output_shape: int=2,
                     spectrum_hid_shape1: float=48,
                     spectrum_hid_shape2: float=64,
