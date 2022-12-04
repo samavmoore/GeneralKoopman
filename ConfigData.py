@@ -4,9 +4,13 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from pytorch_lightning import LightningDataModule
 
-class CustomKoopmanDataset(Dataset):
+class PendulumKoopmanDataset(Dataset):
 
-    def __init__(self, n_states, n_shifts, n_traj, traj_len, data_path):
+    def __init__(self, n_states: int=2,
+                    n_shifts: int=32,
+                    n_traj: int=400,
+                    traj_len: int=201,
+                    data_path: str='my/path'):
         super.__init__()
         # load orig_data
         orig_data = np.load(data_path)
@@ -57,19 +61,33 @@ def shift_n_stack(data, n_shifts, n_traj, traj_len):
     return stacked_data
 
 
-class KoopmanDataModule(LightningDataModule):
-    def __init__(self, train_dict, val_dict, train_data_name, val_data_name):
+class PendulumKoopmanDataModule(LightningDataModule):
+    def __init__(self, batch_size: int=64,
+                    n_states: int=2,
+                    n_shifts: int=32,
+                    traj_len: int=201,
+                    train_n_traj: int=400,
+                    val_n_traj: int=10, 
+                    train_data_path: str='my/path',
+                    val_data_path: str='my/path'):
         super().__init__()
-        self.train_dict = train_dict
-        self.val_dict = val_dict
-        self.train_data_name = train_data_name
-        self.val_data_name = val_data_name
-        self.batch_size =train_dict['batch_size']
+        self.n_states = n_states
+        self.n_shifts = n_shifts
+        self.traj_len = traj_len
+        self.train_n_traj = train_n_traj
+        self.val_n_traj = val_n_traj
+        self.train_data_path = train_data_path
+        self.val_data_path = val_data_path
+        self.batch_size = batch_size
 
     def setup(self, stage: 'str'):
         if stage == "fit":
-            self.koop_train = CustomKoopmanDataset(self.train_dict, self.train_data_name)
-            self.koop_val = CustomKoopmanDataset(self.val_dict, self.val_data_name)
+
+            self.koop_train = PendulumKoopmanDataset(n_shifts=self.n_shifts, n_states=self.n_states, \
+            n_traj=self.train_n_traj, traj_len= self.traj_len, data_path=self.train_data_path)
+
+            self.koop_val = PendulumKoopmanDataset(n_shifts=self.n_shifts, n_states=self.n_states, \
+            n_traj=self.val_n_traj, traj_len= self.traj_len, data_path=self.val_data_path)
 
     def train_dataloader(self):
         return DataLoader(self.koop_train, batch_size=self.batch_size, shuffle=True)
@@ -79,12 +97,11 @@ class KoopmanDataModule(LightningDataModule):
 
 
 class ContextDataset(Dataset):
-    def __init__(self, data_path):
+    def __init__(self, data_path: str="my/path"):
         super().__init__()
         self.data = np.load(data_path)
 
         self.data = torch.from_numpy(self.data).float()
-
 
     def __getitem__(self, index):
         return self.data[index,:]
@@ -94,7 +111,8 @@ class ContextDataset(Dataset):
 
 
 class ContextDataModule(LightningDataModule):
-    def __init__(self, data_path, batch_size):
+    def __init__(self, data_path: str='my/path',
+                    batch_size: int=64):
         super().__init__()
 
         self.data_path = data_path
@@ -103,7 +121,7 @@ class ContextDataModule(LightningDataModule):
     def setup(self, stage: str):
         if stage == "fit":
             self.full_data = ContextDataset(self.data_path)
-            self.train, self.val = random_split(self.full_data, [.7, .3])
+            self.train, self.val = random_split(self.full_data, [700, 300])
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
@@ -112,14 +130,14 @@ class ContextDataModule(LightningDataModule):
         return DataLoader(self.val, batch_size=self.batch_size)
 
 class EigenPretrainDataset(Dataset):
-    def __init__(self, data_path, n_states):
+    def __init__(self, data_path: str='my/path',
+                    n_states: int=2):
         super().__init__()
         self.data = np.load(data_path)
         self.data = torch.from_numpy(self.data).float()
 
         self.states = self.data[:,:n_states]
         self.context = self.data[:,n_states:]
-
 
     def __getitem__(self, index):
         return self.states[index,:], self.context[index,:]
@@ -128,7 +146,8 @@ class EigenPretrainDataset(Dataset):
         return len(self.data[:,0])
 
 class EigenPretrainModule(LightningDataModule):
-    def __init__(self, data_path, batch_size):
+    def __init__(self, data_path: str='my/path',
+                    batch_size: int=128):
         super().__init__()
 
         self.data_path = data_path
@@ -136,8 +155,8 @@ class EigenPretrainModule(LightningDataModule):
 
     def setup(self, stage: str):
         if stage == 'fit':
-            self.full_data = EigenPretrainDataset(self.data_path)
-            self.train, self.val = random_split(self.full_data, [.7, .3])
+            self.full_data = EigenPretrainDataset(data_path=self.data_path)
+            self.train, self.val = random_split(self.full_data, [56280, 24120])
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)

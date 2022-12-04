@@ -110,7 +110,7 @@ class PendulumKoopModule(LightningModule):
                     learning_rate: float=.0001,
                     loss_hyper_a0: float=.1,
                     loss_hypers_a1: float=.1,
-                    loss_hyper_a2: float=.01,
+                    loss_hyper_a2: float=1,
                     loss_hyper_a3: float=0,
                     loss_hyper_lambda: float=0):
         super().__init__()
