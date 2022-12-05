@@ -51,7 +51,7 @@ class Context(LightningModule):
 class EigenPretrain(LightningModule):
     def __init__(self, hid_layer_shape1: int=48,
                        hid_layer_shape2: int=96,
-                       learning_rate: float=0.0047,
+                       learning_rate: float=0.00691,
                        Context_NN_Path: str='my/path'):
         super().__init__()
         self.save_hyperparameters()
@@ -116,12 +116,15 @@ class PendulumKoopModule(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.Context_NN = Context.load_from_checkpoint(Context_NN_Path)
-        self.Context_NN.freeze()
+        pretrained_NN = EigenPretrain.load_from_checkpoint(Eigenfunction_NN_Path)
 
-        self.Eigenfunction_NN = EigenPretrain.load_from_checkpoint(Eigenfunction_NN_Path)
+        self.context_encoder = pretrained_NN.Context_NN.Encoder
+        self.context_decoder = pretrained_NN.Context_NN.Decoder
 
-        self.Spectrum = Spectrum(spectrum_hidden_shape1=spectrum_hid_shape1, spectrum_hidden_shape2=spectrum_hid_shape2)
+        self.eigenfunction = pretrained_NN.Eigenfunction
+        self.inv_eigenfunction = pretrained_NN.Inv_Eigenfunction
+
+        self.spectrum = Spectrum(spectrum_hidden_shape1=spectrum_hid_shape1, spectrum_hidden_shape2=spectrum_hid_shape2)
 
         self.n_shifts = n_shifts
         self.delta_t = delta_t
@@ -140,24 +143,24 @@ class PendulumKoopModule(LightningModule):
 
         outputs = {}
         # encode context
-        encoded_context = self.Context_NN.Encoder(context)
+        encoded_context = self.context_encoder(context)
 
         # reconstruct context
-        estimated_context = self.Context_NN.Decoder(encoded_context)
+        estimated_context = self.context_decoder(encoded_context)
         outputs['estimated_context'] = estimated_context
 
         # embed the current state
-        current_embeddings = self.Eigenfunction_NN.Eigenfunction(state, encoded_context)
+        current_embeddings = self.eigenfunction(state, encoded_context)
 
         # reconstruct the current state
-        estimated_current_state = self.Eigenfunction_NN.Inv_Eigenfunction(current_embeddings, encoded_context)
+        estimated_current_state = self.inv_eigenfunction(current_embeddings)
         outputs['estimated_current_state'] = estimated_current_state
 
         future_embeddings = self.embed_true_future_states(future, encoded_context)
         outputs['future_embeddings'] = future_embeddings
 
         # estimate the spectrum with the current state
-        omegas = self.Spectrum(current_embeddings)
+        omegas = self.spectrum(current_embeddings)
         
         # predict future states, and future embeddings
         outputs['estimated_future_state'], outputs['estimated_future_embeddings'] = \
@@ -176,6 +179,9 @@ class PendulumKoopModule(LightningModule):
         future_embeddings = preds['future_embeddings']
         estimated_future_state = preds['estimated_future_state']
         estimated_future_embeddings = preds['estimated_future_embeddings']
+
+        for name, param in self.named_parameters():
+            print(name, param)
 
         weighted_future_state_loss = self.alpha_0*F.mse_loss(future, estimated_future_state)
         weighted_state_recon_loss = self.alpha_1*F.mse_loss(states, estimated_current_state)
@@ -287,10 +293,10 @@ class PendulumKoopModule(LightningModule):
                 estimated_future_embeddings[j,i,:] = temp_embeddings
 
                 # estimate state
-                estimated_future_state[j,i,:] = self.Eigenfunction_NN.Inv_Eigenfunction(temp_embeddings, context_encodings)
+                estimated_future_state[j,i,:] = self.inv_eigenfunction(temp_embeddings)
 
                 # estimate spectrum
-                temp_omegas = self.Spectrum(temp_embeddings)
+                temp_omegas = self.spectrum(temp_embeddings)
 
 
         return estimated_future_state, estimated_future_embeddings
@@ -315,6 +321,6 @@ class PendulumKoopModule(LightningModule):
             ith_context_repeated = ith_context.repeat(self.n_shifts, 1)
 
             # run eigenfunction network for each observation in the batch
-            future_embeddings[i,:,:] = self.Eigenfunction_NN.Eigenfunction(ith_context_repeated, ith_future)
+            future_embeddings[i,:,:] = self.eigenfunction(ith_context_repeated, ith_future)
 
         return future_embeddings

@@ -11,7 +11,8 @@ class PendulumKoopmanDataset(Dataset):
                     n_traj: int=400,
                     traj_len: int=201,
                     data_path: str='my/path'):
-        super.__init__()
+    
+        super().__init__()
         # load orig_data
         orig_data = np.load(data_path)
 
@@ -71,6 +72,7 @@ class PendulumKoopmanDataModule(LightningDataModule):
                     train_data_path: str='my/path',
                     val_data_path: str='my/path'):
         super().__init__()
+
         self.n_states = n_states
         self.n_shifts = n_shifts
         self.traj_len = traj_len
