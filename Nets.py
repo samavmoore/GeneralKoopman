@@ -68,21 +68,21 @@ class Eigenfunction(nn.Module):
 
 class Inv_Eigenfunction(nn.Module):
     def __init__(self, n_states: int=2,
-                    eigenfunction_output_shape: int=2,
+                    inv_eigenfunction_input_shape: int=3,
                     eigenfunction_hidden_shape1: int=48,
                     eigenfunction_hidden_shape2: int=96):
         super().__init__()
 
-        self.inv_eigenfunction_l1 = nn.Linear(in_features=eigenfunction_output_shape, out_features=eigenfunction_hidden_shape1)
+        self.inv_eigenfunction_l1 = nn.Linear(in_features=inv_eigenfunction_input_shape, out_features=eigenfunction_hidden_shape1)
         self.inv_eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
         self.inv_eigenfunction_l3 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
         self.inv_eigenfunction_l4 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape1)
         self.inv_eigenfunction_l5 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=n_states)
 
-    def forward(self, embeddings):
+    def forward(self, inputs):
         ''' Purpose: Put system into state space coordinates from eigenfuction coordinates
         '''
-        output1 = F.relu(self.inv_eigenfunction_l1(embeddings))
+        output1 = F.relu(self.inv_eigenfunction_l1(inputs))
         output2 = F.relu(self.inv_eigenfunction_l2(output1))
         output3 = F.relu(self.inv_eigenfunction_l3(output2))
         output4 = F.relu(self.inv_eigenfunction_l4(output3))
@@ -93,7 +93,7 @@ class Inv_Eigenfunction(nn.Module):
 class Spectrum(nn.Module):
     def __init__(self, spectrum_hidden_shape1: int=48,
                     spectrum_hidden_shape2: int=64,
-                    spectrum_input_shape: int=2,
+                    spectrum_input_shape: int=3,
                     spectrum_output_shape: int=2):
         super().__init__()
 
@@ -102,11 +102,11 @@ class Spectrum(nn.Module):
         self.spectrum_l3 = nn.Linear(in_features=spectrum_hidden_shape2, out_features=spectrum_hidden_shape1)
         self.spectrum_l4 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_output_shape)
 
-    def forward(self, embeddings):
+    def forward(self, inputs):
         ''' Purpose: predict eigenvalues from the output of an eigenfuction
         '''
-        #x = torch.cat((encoded_context, embeddings), -1)
-        output1 = F.relu(self.spectrum_l1(embeddings))
+        
+        output1 = F.relu(self.spectrum_l1(inputs))
         output2 = F.relu(self.spectrum_l2(output1))
         output3 = F.relu(self.spectrum_l3(output2))
         eigs = self.spectrum_l4(output3)

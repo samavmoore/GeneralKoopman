@@ -3,6 +3,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 import math
 import random as rand
+from scipy.stats import truncnorm
 
 # define pendulum dynamics function 
 def pend(t, thetas, g, l):
@@ -11,29 +12,16 @@ def pend(t, thetas, g, l):
     theta_ddot = -g/l*math.sin(theta)
     return [theta_dot, theta_ddot]
 
-# initialize simulation parameters
-traj_len = 201
-start_time = 0
-stop_time = 4
-n_configs = 20
-n_ICs
-n_testing_ICs = 1
-
-
-# initialize trajectory data
-
-testing_data = np.zeros([n_testing_configs*n_testing_ICs*traj_len, 4])
-
-# initialize context data (array that stores parameters g and l)
-
-test_configs = np.zeros([n_testing_configs, 2])
-
-
+def get_truncated_normal(mean=0, sd=1, low=0, upp=10):
+    return truncnorm(
+        (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
 
 def get_pendulum_data(n_ICs, n_configs, start_time, stop_time, traj_len):
     configs = np.zeros([n_configs, 2])
     data = np.zeros([n_configs*n_ICs*traj_len, 4])
     time = np.linspace(start_time, stop_time, traj_len)
+
+    theta_dist = get_truncated_normal(mean=0, sd=2, low=-3.1, upp=3.1)
 
     for i in range(n_configs):
             # get random parameters for g and l 
@@ -52,13 +40,18 @@ def get_pendulum_data(n_ICs, n_configs, start_time, stop_time, traj_len):
             data[exp_starting_index:exp_ending_index, 2:] = repeated_params
 
             for traj in range(n_ICs):
+
                 # get starting and ending indices for each trajectory
                 traj_starting_index = exp_starting_index + traj*traj_len
                 traj_ending_index = exp_starting_index + (traj+1)*traj_len
 
                 # get random initial conditions
-                theta_0 = rand.uniform(0, 2*math.pi)
-                theta_dot_0 = rand.uniform(0, 2*math.pi)
+                
+                theta_0 = theta_dist.rvs()
+                safety = g/l-.02
+                upperbound = math.sqrt(2*safety)*math.sqrt(1+math.cos(theta_0))
+                lowerbound = -upperbound
+                theta_dot_0 = rand.uniform(lowerbound, upperbound)
 
                 # simulate dynamics
                 sol = solve_ivp(pend, t_span=[start_time, stop_time], y0=[theta_0, theta_dot_0], args=(g, l), t_eval=time)
@@ -70,13 +63,7 @@ def get_pendulum_data(n_ICs, n_configs, start_time, stop_time, traj_len):
                 # assign trajectory to data
                 data[traj_starting_index:traj_ending_index, 0:2] = trajectory
 
-    return configs, data 
-
-
-
-
-
-
+    return configs, data
 
 
 if __name__=="__main__":
@@ -93,18 +80,23 @@ if __name__=="__main__":
         context[i, :] = [g, l]
 
 ##########---------------- Main Training Data -----------------
+    # initialize simulation parameters
+    traj_len = 51
+    start_time = 0
+    stop_time = 1
+    n_train_configs = 50
+    n_train_ICs = 100
+    
+    train_configs, train_data = get_pendulum_data(n_ICs=n_train_ICs, n_configs=n_train_configs, traj_len=traj_len, start_time=0, stop_time=3)
 
+    np.save("Pendulum_train_data", train_data)
+    np.save("Pendulum_train_configs", train_configs)
 
 ########------------ Main Test/Validation Data ----------------
+    n_val_configs = 10
+    n_val_ICs = 2
 
+    val_configs, val_data = get_pendulum_data(n_ICs=n_val_ICs, n_configs=n_val_configs, traj_len=traj_len, start_time=0, stop_time=3)
 
-
-np.save("context_data", context)
-
-#np.save("Pendulum_debug_train_data", training_data)
-#np.save("Pendulum_debug_train_configs", train_configs)
-
-#np.save("Pendulum_test_data", testing_data)
-#np.save("Pendulum_test_configs", testing_data)
-
-
+    np.save("Pendulum_val_data", val_data)
+    np.save("Pendulum_val_configs", val_configs)

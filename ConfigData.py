@@ -8,8 +8,8 @@ class PendulumKoopmanDataset(Dataset):
 
     def __init__(self, n_states: int=2,
                     n_shifts: int=32,
-                    n_traj: int=400,
-                    traj_len: int=201,
+                    n_traj: int=5000,
+                    traj_len: int=51,
                     data_path: str='my/path'):
     
         super().__init__()
@@ -66,9 +66,9 @@ class PendulumKoopmanDataModule(LightningDataModule):
     def __init__(self, batch_size: int=64,
                     n_states: int=2,
                     n_shifts: int=32,
-                    traj_len: int=201,
-                    train_n_traj: int=400,
-                    val_n_traj: int=10, 
+                    traj_len: int=51,
+                    train_n_traj: int=5000,
+                    val_n_traj: int=20, 
                     train_data_path: str='my/path',
                     val_data_path: str='my/path'):
         super().__init__()
@@ -158,7 +158,7 @@ class EigenPretrainModule(LightningDataModule):
     def setup(self, stage: str):
         if stage == 'fit':
             self.full_data = EigenPretrainDataset(data_path=self.data_path)
-            self.train, self.val = random_split(self.full_data, [56280, 24120])
+            self.train, self.val = random_split(self.full_data, [178500,76500])
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)
