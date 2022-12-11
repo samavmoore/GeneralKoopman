@@ -150,10 +150,8 @@ class PendulumKoopModule(LightningModule):
 
         if self.skipped:
             spectrum_input_shape = 3
-            inv_input_shape = 3
         else:
             spectrum_input_shape = 2
-            inv_input_shape = 2
      
         pretrained_NN = EigenPretrain.load_from_checkpoint(Eigenfunction_NN_Path)
 
@@ -173,9 +171,11 @@ class PendulumKoopModule(LightningModule):
         self.n_states = n_states
         self.eigenfunction_output_shape = eigenfunction_output_shape
 
-        self.alpha_0 = loss_hyper_a0
-        self.alpha_1 = loss_hypers_a1
-        self.alpha_2 = loss_hyper_a2
+        self.alpha_0_e0 = loss_hyper_a0
+        self.alpha_1_e0 = loss_hypers_a1
+        self.alpha_2_e0 = loss_hyper_a2
+
+        
         self.alpha_3 = loss_hyper_a3
         self.lam = loss_hyper_lambda
 
