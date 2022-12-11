@@ -154,8 +154,6 @@ class PendulumKoopModule(LightningModule):
         else:
             spectrum_input_shape = 2
             inv_input_shape = 2
-
-
      
         pretrained_NN = EigenPretrain.load_from_checkpoint(Eigenfunction_NN_Path)
 
@@ -228,39 +226,28 @@ class PendulumKoopModule(LightningModule):
         estimated_future_state = preds['estimated_future_state']
         estimated_future_embeddings = preds['estimated_future_embeddings']
 
-        future_state_loss = F.mse_loss(future, estimated_future_state)
-        state_recon_loss = F.mse_loss(states, estimated_current_state)
-        future_embedding_loss = F.mse_loss(future_embeddings, estimated_future_embeddings)
-        inf_loss = (self.inf_loss(future[:,:2,:], estimated_future_state[:,:2,:]) + self.inf_loss(future_embeddings[:,:2,:], estimated_future_embeddings[:,:2,:]))
-        l2_reg = self.l2_reg(self.named_parameters())
+        logs = {}
 
-        weighted_future_state_loss = self.alpha_0*future_state_loss
-        weighted_state_recon_loss = self.alpha_1*state_recon_loss
-        weighted_future_embedding_loss = self.alpha_2*future_embedding_loss
-        weighted_inf_loss = self.alpha_3*inf_loss
-        weighted_l2_reg = self.lam*l2_reg
-        
-        loss = weighted_future_state_loss \
-            + weighted_state_recon_loss \
-            + weighted_future_embedding_loss \
-            + weighted_inf_loss \
-            + weighted_l2_reg
-        
-        #for name, param in self.named_parameters():
-        #    print(f"Name: {name},  Requires Grad: {param.requires_grad}")
+        logs['future_state_loss'] = F.mse_loss(future, estimated_future_state)
+        logs['state_recon_loss'] = F.mse_loss(states, estimated_current_state)
+        logs['future_embedding_loss'] = F.mse_loss(future_embeddings, estimated_future_embeddings)
+        logs['inf_loss'] = (self.inf_loss(future[:,:2,:], estimated_future_state[:,:2,:]) + self.inf_loss(future_embeddings[:,:2,:], estimated_future_embeddings[:,:2,:]))
+        logs['l2_reg'] = self.l2_reg(self.named_parameters())
 
-        logs = {'future_state_loss': future_state_loss, 'state_recon_loss': state_recon_loss, \
-                'future_embedding_loss' : future_embedding_loss, \
-                  'inf_loss' : weighted_inf_loss, 'l2_reg': weighted_l2_reg, 'train_loss': loss}
+
+        loss = self.calculate_loss(*logs.values())
+
+        logs['train_loss'] = loss
+
+        self.step_optimizers(loss)
 
         #loss = self.loss_fn(inputs, preds, self.named_parameters())
         self.log_dict(logs, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-        return loss
 
     def validation_step(self, batch, batch_idx):
         states, context, future = batch
-        inputs = {'states': states.float(), 'context': context.float(), 'future': future.float()}
+        inputs = {'states': states, 'context': context, 'future': future}
 
         preds = self(*inputs.values())
 
@@ -275,21 +262,11 @@ class PendulumKoopModule(LightningModule):
         inf_loss = (self.inf_loss(future[:,:2,:], estimated_future_state[:,:2,:]) + self.inf_loss(future_embeddings[:,:2,:], estimated_future_embeddings[:,:2,:]))
         l2_reg = self.l2_reg(self.named_parameters())
 
-        weighted_future_state_loss = self.alpha_0*future_state_loss
-        weighted_state_recon_loss = self.alpha_1*state_recon_loss
-        weighted_future_embedding_loss = self.alpha_2*future_embedding_loss
-        weighted_inf_loss = self.alpha_3*inf_loss
-        weighted_l2_reg = self.lam*l2_reg
-    
-        loss = weighted_future_state_loss \
-            + weighted_state_recon_loss \
-            + weighted_future_embedding_loss \
-            + weighted_inf_loss \
-            + weighted_l2_reg
+        loss = future_state_loss + state_recon_loss + future_embedding_loss
 
         logs = {'val_future_state_loss': future_state_loss, 'val_state_recon_loss': state_recon_loss, \
                 'val_future_embedding_loss' : future_embedding_loss, \
-                  'val_inf_loss' : weighted_inf_loss, 'val_l2_reg': weighted_l2_reg, 'val_loss': loss}
+                  'val_inf_loss' : inf_loss, 'val_l2_reg': l2_reg, 'val_loss': loss}
 
         self.log_dict(logs, on_step=True, on_epoch=True, prog_bar=True, logger=True)
     
@@ -307,6 +284,202 @@ class PendulumKoopModule(LightningModule):
         error = error.flatten()
         norm = torch.linalg.norm(error, float('inf'))
         return norm
+    
+    def calculate_loss(self, future_state_loss, state_recon_loss, future_embedding_loss, inf_loss, l2_reg):
+
+        if self.current_epoch >= 5:
+            weighted_future_state_loss = self.alpha_0_e5*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e5*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e5*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+
+        
+        elif self.current_epoch == 4:
+            weighted_future_state_loss = self.alpha_0_e4*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e4*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e4*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+
+        elif self.current_epoch ==3:
+            weighted_future_state_loss = self.alpha_0_e3*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e3*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e3*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+
+        elif self.current_epoch == 2:
+            weighted_future_state_loss = self.alpha_0_e2*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e2*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e2*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+
+        elif self.current_epoch ==1:
+            weighted_future_state_loss = self.alpha_0_e1*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e1*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e1*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+
+        else:
+            weighted_future_state_loss = self.alpha_0_e0*future_state_loss
+            weighted_state_recon_loss = self.alpha_1_e0*state_recon_loss
+            weighted_future_embedding_loss = self.alpha_2_e0*future_embedding_loss
+            weighted_inf_loss = self.alpha_3*inf_loss
+            weighted_l2_reg = self.lam*l2_reg
+        
+            loss = weighted_future_state_loss \
+                + weighted_state_recon_loss \
+                + weighted_future_embedding_loss \
+                + weighted_inf_loss \
+                + weighted_l2_reg
+        return loss
+
+    def step_optimizers(self, loss):
+        opt_spect, opt_eigen_l5, opt_eigen_l4, opt_eigen_l3, opt_eigen_l2, opt_eigen_l1 = self.optimizers
+        lr_sched_spect, lr_sched_eigen_l5, lr_sched_eigen_l4, lr_sched_eigen_l3, lr_sched_eigen_l2, lr_sched_eigen_l1 = self.lr_schedulers
+
+
+        if self.current_epoch >=5:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+            opt_eigen_l4.zero_grad()
+            opt_eigen_l3.zero_grad()
+            opt_eigen_l2.zero_grad()
+            opt_eigen_l1.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+            opt_eigen_l1.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
+            lr_sched_eigen_l4.step()
+            lr_sched_eigen_l3.step()
+            lr_sched_eigen_l2.step()
+            lr_sched_eigen_l1.step()
+
+        elif self.current_epoch ==4:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+            opt_eigen_l4.zero_grad()
+            opt_eigen_l3.zero_grad()
+            opt_eigen_l2.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
+            lr_sched_eigen_l4.step()
+            lr_sched_eigen_l3.step()
+            lr_sched_eigen_l2.step()
+        elif self.current_epoch ==3:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+            opt_eigen_l4.zero_grad()
+            opt_eigen_l3.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
+            lr_sched_eigen_l4.step()
+            lr_sched_eigen_l3.step()
+
+        elif self.current_epoch ==2:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+            opt_eigen_l4.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
+            lr_sched_eigen_l4.step()
+
+        elif self.current_epoch ==1:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
+        else:
+            opt_spect.zero_grad()
+            opt_eigen_l5.zero_grad()
+
+            self.manual_backward(loss)
+
+            opt_spect.step()
+            opt_eigen_l5.step()
+            opt_eigen_l4.step()
+            opt_eigen_l3.step()
+            opt_eigen_l2.step()
+
+            lr_sched_spect.step()
+            lr_sched_eigen_l5.step()
 
     # configure optimizers
     def configure_optimizers(self):
@@ -316,8 +489,8 @@ class PendulumKoopModule(LightningModule):
         l2_eigen_layers = zip(self.eigenfunction.eigenfunction_l2.parameters(), self.inv_eigenfunction.inv_eigenfunction_l2.parameters())
         l1_eigen_layers =zip(self.eigenfunction.eigenfunction_l1.parameters(), self.inv_eigenfunction.inv_eigenfunction_l1.parameters())
 
-        opt_spect = torch.optim.SGD(self.spectrum.parameters(), lr=.01)
-        lr_sched_spect = {'scheduler': CyclicLR(opt_spect, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
+        opt_spect = torch.optim.SGD(self.spectrum.parameters(), lr=.001)
+        lr_sched_spect = {'scheduler': CyclicLR(opt_spect, base_lr=.005, max_lr=.05, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
         
         opt_eigen_l5 = torch.optim.SGD(l5_eigen_layers, lr=.0001, momentum=.9)
         opt_eigen_l4 = torch.optim.SGD(l4_eigen_layers, lr=.0001, momentum=.9)
@@ -325,18 +498,16 @@ class PendulumKoopModule(LightningModule):
         opt_eigen_l2 = torch.optim.SGD(l2_eigen_layers, lr=.0001, momentum=.9)
         opt_eigen_l1 = torch.optim.SGD(l1_eigen_layers, lr=.0001, momentum=.9)
 
-        
+        lr_sched_eigen_l5 = {'scheduler': CyclicLR(opt_eigen_l5, base_lr=.001, max_lr=.01, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
+        lr_sched_eigen_l4 = {'scheduler': CyclicLR(opt_eigen_l4, base_lr=.0005, max_lr=.005, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
+        lr_sched_eigen_l3 = {'scheduler': CyclicLR(opt_eigen_l3, base_lr=.00025, max_lr=.0025, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
+        lr_sched_eigen_l2 = {'scheduler': CyclicLR(opt_eigen_l2, base_lr=.000125, max_lr=.00125, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
+        lr_sched_eigen_l1 = {'scheduler': CyclicLR(opt_eigen_l1, base_lr=.000075, max_lr=.00075, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
 
-        lr_sched_eigen_l5 = {'scheduler': CyclicLR(opt_eigen_l5, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
-        lr_sched_eigen_l4 = {'scheduler': CyclicLR(opt_eigen_l4, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
-        lr_sched_eigen_l3 = {'scheduler': CyclicLR(opt_eigen_l3, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
-        lr_sched_eigen_l2 = {'scheduler': CyclicLR(opt_eigen_l2, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
-        lr_sched_eigen_l1 = {'scheduler': CyclicLR(opt_eigen_l1, base_lr=.005, max_lr=.1, step_size_up=1637, cycle_momentum=False, mode='triangular2')}
-
-        return [opt_spect, opt_eigen_l5], [lr_sched_spect]
+        return [opt_spect, opt_eigen_l5, opt_eigen_l4, opt_eigen_l3, opt_eigen_l2, opt_eigen_l1], [lr_sched_spect, lr_sched_eigen_l5, lr_sched_eigen_l4, lr_sched_eigen_l3, lr_sched_eigen_l2, lr_sched_eigen_l1]
 
     # gradual unfreezing
-    def on_train_epoch_end(self):
+    def on_train_epoch_start(self):
         if self.current_epoch==1:
             self.eigenfunction.eigenfunction_l5.requires_grad_(True)
             self.inv_eigenfunction.inv_eigenfunction_l5.requires_grad_(True)
