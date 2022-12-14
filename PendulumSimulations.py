@@ -70,33 +70,34 @@ if __name__=="__main__":
 
 ########----------- Context Pre-train Data ---------------------
 
-    n_context_configs = 1000
+#    n_context_configs = 1000
 
-    context = np.zeros([1000, 2])
+#    context = np.zeros([1000, 2])
 
-    for i in range(n_context_configs):
-        g = rand.uniform(1, 12)
-        l = rand.uniform(.2, 1)
-        context[i, :] = [g, l]
+#    for i in range(n_context_configs):
+#        g = rand.uniform(1, 12)
+#        l = rand.uniform(.2, 1)
+#        context[i, :] = [g, l]
 
 ##########---------------- Main Training Data -----------------
     # initialize simulation parameters
     traj_len = 51
     start_time = 0
     stop_time = 1
-    n_train_configs = 50
-    n_train_ICs = 100
+    n_train_configs = 1
+    n_train_ICs = 2
     
     train_configs, train_data = get_pendulum_data(n_ICs=n_train_ICs, n_configs=n_train_configs, traj_len=traj_len, start_time=0, stop_time=3)
 
-    np.save("Pendulum_train_data", train_data)
-    np.save("Pendulum_train_configs", train_configs)
+    np.save("Pendulum_Sanity_check_train_data", train_data)
+    np.save("Pendulum_Sanity_check_train_configs", train_configs)
 
 ########------------ Main Test/Validation Data ----------------
-    n_val_configs = 10
+'''    n_val_configs = 10
     n_val_ICs = 2
 
     val_configs, val_data = get_pendulum_data(n_ICs=n_val_ICs, n_configs=n_val_configs, traj_len=traj_len, start_time=0, stop_time=3)
 
     np.save("Pendulum_val_data", val_data)
     np.save("Pendulum_val_configs", val_configs)
+'''

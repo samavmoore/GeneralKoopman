@@ -23,7 +23,10 @@ def K_blocks(omegas, delta_t):
         dt = delta_t
 
         growth_decay = torch.exp(R_part*dt)
-        oscillations = torch.tensor([[torch.cos(I_part*dt), -torch.sin(I_part*dt)], [torch.sin(I_part*dt), torch.cos(I_part*dt)]])
+        
+        oscillations = torch.tensor([[torch.cos(I_part*dt), -torch.sin(I_part*dt)], \
+                                    [torch.sin(I_part*dt), torch.cos(I_part*dt)]])
+
         oscillations = oscillations.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
 
         # store these blocks in the dictionary

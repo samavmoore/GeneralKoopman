@@ -44,15 +44,17 @@ class ContextDecoder(nn.Module):
 class Eigenfunction(nn.Module):
     def __init__(self, eigenfunction_input_shape: int=3,
                      eigenfunction_output_shape: int=2, 
-                     eigenfunction_hidden_shape1: int=48, 
-                     eigenfunction_hidden_shape2: int=96):
+                     eigenfunction_hidden_shape1: int=64, 
+                     eigenfunction_hidden_shape2: int=128):
         super().__init__() 
 
         self.eigenfunction_l1 = nn.Linear(in_features=eigenfunction_input_shape, out_features=eigenfunction_hidden_shape1)
-        self.eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
-        self.eigenfunction_l3 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
-        self.eigenfunction_l4 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape1)
-        self.eigenfunction_l5 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_output_shape)
+        self.eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape1)
+        self.eigenfunction_l3 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
+        self.eigenfunction_l4 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
+        self.eigenfunction_l5 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
+        self.eigenfunction_l6 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape1)
+        self.eigenfunction_l7 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_output_shape)
 
     def forward(self, state, encoded_context):
         ''' Purpose: Put state into eigenfunction coordinates
@@ -62,22 +64,26 @@ class Eigenfunction(nn.Module):
         output2 = F.relu(self.eigenfunction_l2(output1))
         output3 = F.relu(self.eigenfunction_l3(output2))
         output4 = F.relu(self.eigenfunction_l4(output3))
-        embeddings = self.eigenfunction_l5(output4)
+        output5 = F.relu(self.eigenfunction_l5(output4))
+        output6 = F.relu(self.eigenfunction_l6(output5))
+        embeddings = self.eigenfunction_l7(output6)
 
         return embeddings
 
 class Inv_Eigenfunction(nn.Module):
     def __init__(self, n_states: int=2,
                     inv_eigenfunction_input_shape: int=3,
-                    eigenfunction_hidden_shape1: int=48,
-                    eigenfunction_hidden_shape2: int=96):
+                    eigenfunction_hidden_shape1: int=64,
+                    eigenfunction_hidden_shape2: int=128):
         super().__init__()
 
         self.inv_eigenfunction_l1 = nn.Linear(in_features=inv_eigenfunction_input_shape, out_features=eigenfunction_hidden_shape1)
-        self.inv_eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
-        self.inv_eigenfunction_l3 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
-        self.inv_eigenfunction_l4 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape1)
-        self.inv_eigenfunction_l5 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=n_states)
+        self.inv_eigenfunction_l2 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape1)
+        self.inv_eigenfunction_l3 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=eigenfunction_hidden_shape2)
+        self.inv_eigenfunction_l4 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
+        self.inv_eigenfunction_l5 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape2)
+        self.inv_eigenfunction_l6 = nn.Linear(in_features=eigenfunction_hidden_shape2, out_features=eigenfunction_hidden_shape1)
+        self.inv_eigenfunction_l7 = nn.Linear(in_features=eigenfunction_hidden_shape1, out_features=n_states)
 
     def forward(self, inputs):
         ''' Purpose: Put system into state space coordinates from eigenfuction coordinates
@@ -86,21 +92,25 @@ class Inv_Eigenfunction(nn.Module):
         output2 = F.relu(self.inv_eigenfunction_l2(output1))
         output3 = F.relu(self.inv_eigenfunction_l3(output2))
         output4 = F.relu(self.inv_eigenfunction_l4(output3))
-        state_hat = self.inv_eigenfunction_l5(output4)
+        output5 = F.relu(self.inv_eigenfunction_l5(output4))
+        output6 = F.relu(self.inv_eigenfunction_l6(output5))
+        state_hat = self.inv_eigenfunction_l7(output6)
 
         return state_hat
 
 class Spectrum(nn.Module):
-    def __init__(self, spectrum_hidden_shape1: int=48,
-                    spectrum_hidden_shape2: int=64,
+    def __init__(self, spectrum_hidden_shape1: int=64,
+                    spectrum_hidden_shape2: int=128,
                     spectrum_input_shape: int=3,
                     spectrum_output_shape: int=2):
         super().__init__()
 
         self.spectrum_l1 = nn.Linear(in_features=spectrum_input_shape, out_features=spectrum_hidden_shape1)
-        self.spectrum_l2 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_hidden_shape2)
-        self.spectrum_l3 = nn.Linear(in_features=spectrum_hidden_shape2, out_features=spectrum_hidden_shape1)
-        self.spectrum_l4 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_output_shape)
+        self.spectrum_l2 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_hidden_shape1)
+        self.spectrum_l3 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_hidden_shape2)
+        self.spectrum_l4 = nn.Linear(in_features=spectrum_hidden_shape2, out_features=spectrum_hidden_shape2)
+        self.spectrum_l5 = nn.Linear(in_features=spectrum_hidden_shape2, out_features=spectrum_hidden_shape1)
+        self.spectrum_l6 = nn.Linear(in_features=spectrum_hidden_shape1, out_features=spectrum_output_shape)
 
     def forward(self, inputs):
         ''' Purpose: predict eigenvalues from the output of an eigenfuction
@@ -109,6 +119,8 @@ class Spectrum(nn.Module):
         output1 = F.relu(self.spectrum_l1(inputs))
         output2 = F.relu(self.spectrum_l2(output1))
         output3 = F.relu(self.spectrum_l3(output2))
-        eigs = self.spectrum_l4(output3)
+        output4 = F.relu(self.spectrum_l4(output3))
+        output5 = F.relu(self.spectrum_l5(output4))
+        eigs = self.spectrum_l6(output5)
 
         return eigs

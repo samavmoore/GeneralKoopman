@@ -50,8 +50,8 @@ class Context(LightningModule):
 ############### ------------------------------ Eigenfunction Pretraining Module ----------------------------------################
 
 class EigenPretrain(LightningModule):
-    def __init__(self, hid_layer_shape1: int=48,
-                       hid_layer_shape2: int=96,
+    def __init__(self, hid_layer_shape1: int=64,
+                       hid_layer_shape2: int=128,
                        context_pretrain: bool=True,
                        skipped_connections: bool=False,
                        learning_rate: float=0.00691,
